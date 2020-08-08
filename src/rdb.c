@@ -86,7 +86,7 @@ void rdbCheckThenExit(int linenum, char *reason, ...) {
 static int rdbWriteRaw(rio *rdb, void *p, size_t len) {
     if (rdb && rioWrite(rdb,p,len) == 0)
         return -1;
-    return (int)len;
+    return (int)len;                  WIN_PORT_FIX /* cast (int) */
 }
 
 /* This is just a wrapper for the low level function rioRead() that will
@@ -1391,7 +1391,14 @@ int rdbSaveBackground(char *filename, rdbSaveInfo *rsi) {
 #endif
         /* Parent */
         server.stat_fork_time = ustime()-start;
-        server.stat_fork_rate = (double) (zmalloc_used_memory() * 1000000 / server.stat_fork_time / ((double)1024*1024*1024)); /* GB per second. */
+//[tporadowski/redis] issue #46: ustime() -> gettimeofday_highres() uses GetSystemTimePreciseAsFileTime when available (Windows 8, Windows Server 2012) or
+//                    falls back to GetSystemTimeAsFileTime which does not have such high resolution, so "stat_fork_time" may be 0 here
+#ifdef _WIN32
+        if (server.stat_fork_time == 0) {
+            server.stat_fork_time = 100000; //let's pretend it took 100ms (100000 microseconds)
+        }
+#endif
+        server.stat_fork_rate = (double)(zmalloc_used_memory() * 1000000 / server.stat_fork_time / (1024 * 1024 * 1024)); /* GB per second. */  WIN_PORT_FIX
         latencyAddSampleIfNeeded("fork",server.stat_fork_time/1000);
         if (childpid == -1) {
             closeChildInfoPipe();
@@ -1918,7 +1925,7 @@ void rdbLoadProgressCallback(rio *r, const void *buf, size_t len) {
         /* The DB can take some non trivial amount of time to load. Update
          * our cached time since it is used to create and update the last
          * interaction time with clients and for other important things. */
-        updateCachedTime();
+        updateCachedTime(0);
         if (server.masterhost && server.repl_state == REPL_STATE_TRANSFER)
             replicationSendNewlineToMaster();
         loadingProgress((off_t)r->processed_bytes);                             WIN_PORT_FIX /* cast (off_t) */
@@ -2477,7 +2484,14 @@ int rdbSaveToSlavesSockets(rdbSaveInfo *rsi) {
             closeChildInfoPipe();
         } else {
             server.stat_fork_time = ustime()-start;
-            server.stat_fork_rate = (double) (zmalloc_used_memory() * 1000000 / server.stat_fork_time / ((double)1024*1024*1024)); /* GB per second. */
+//[tporadowski/redis] issue #46: ustime() -> gettimeofday_highres() uses GetSystemTimePreciseAsFileTime when available (Windows 8, Windows Server 2012) or
+//                    falls back to GetSystemTimeAsFileTime which does not have such high resolution, so "stat_fork_time" may be 0 here
+#ifdef _WIN32
+            if (server.stat_fork_time == 0) {
+                server.stat_fork_time = 100000; //let's pretend it took 100ms (100000 microseconds)
+            }
+#endif
+            server.stat_fork_rate = (double)(zmalloc_used_memory() * 1000000 / server.stat_fork_time / (1024 * 1024 * 1024)); /* GB per second. */  WIN_PORT_FIX
             latencyAddSampleIfNeeded("fork",server.stat_fork_time/1000);
 
             serverLog(LL_NOTICE,"Background RDB transfer started by pid %d",

@@ -302,7 +302,8 @@ public:
             { "known-sentinel",             &fp4 },    // sentinel known-sentinel <name> <ip> <port> [runid]
             { "announce-ip",                &fp1 },    // sentinel announce-ip <ip>
             { "announce-port",              &fp1 },    // sentinel announce-port <port>
-            { "myid",                       &fp1 }     // sentinel myid <id>
+            { "myid",                       &fp1 },    // sentinel myid <id>
+            { "deny-scripts-reconfig",      &fp1 }     // sentinel deny-scripts-reconfig [yes/no]
         };
     }
 
@@ -313,7 +314,7 @@ public:
             throw invalid_argument(err.str());
         }
         if (subCommands.find(argv[argStartIndex + 1]) == subCommands.end()) {
-            err << "Could not find sentinal subcommand " << argv[argStartIndex + 1];
+            err << "Could not find sentinel subcommand " << argv[argStartIndex + 1];
             throw invalid_argument(err.str());
         }
 
@@ -336,7 +337,7 @@ public:
         }
         string subcommand = tokens.at(startIndex + 1);
         if (subCommands.find(subcommand) == subCommands.end()) {
-            err << "Could not find sentinal subcommand " << subcommand;
+            err << "Could not find sentinel subcommand " << subcommand;
             throw invalid_argument(err.str());
         }
 
@@ -659,7 +660,8 @@ void ParseCommandLineArguments(int argc, char** argv) {
     string confFilePath;
     for (int n = (confFile ? 2 : 1); n < argc; n++) {
         if (string(argv[n]).substr(0, 2) == "--") {
-            string argument = string(argv[n]).substr(2, argument.length() - 2);
+            string argumentString = string(argv[n]);
+            string argument = argumentString.substr(2, argumentString.length() - 2);
             transform(argument.begin(), argument.end(), argument.begin(), ::tolower);
 
             // Some -- arguments are passed directly to redis.c::main()

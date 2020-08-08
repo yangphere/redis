@@ -51,7 +51,7 @@
 #endif
 
 #elif defined(USE_JEMALLOC)
-#define ZMALLOC_LIB ("jemalloc-" __xstr(JEMALLOC_VERSION_MAJOR) "." __xstr(JEMALLOC_VERSION_MINOR) "." __xstr(JEMALLOC_VERSION_BUGFIX))
+#define ZMALLOC_LIB ("jemalloc-" __xstr(JEMALLOC_VERSION_MAJOR) "." __xstr(JEMALLOC_VERSION_MINOR) "." __xstr(JEMALLOC_VERSION_BUGFIX) "-redis")
 #include <jemalloc/jemalloc.h>
 #if (JEMALLOC_VERSION_MAJOR == 2 && JEMALLOC_VERSION_MINOR >= 1) || (JEMALLOC_VERSION_MAJOR > 2)
 #define HAVE_MALLOC_SIZE 1
@@ -65,11 +65,6 @@
 #define HAVE_MALLOC_SIZE 1
 #define zmalloc_size(p) malloc_size(p)
 
-#elif defined(USE_DLMALLOC)
-#include "Win32_Interop/win32_dlmalloc.h"
-#define ZMALLOC_LIB ("dlmalloc-" __xstr(2) "." __xstr(8) )
-#define HAVE_MALLOC_SIZE 1
-#define zmalloc_size(p)  g_msize(p)
 #endif
 
 #ifndef ZMALLOC_LIB
